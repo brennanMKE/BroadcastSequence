@@ -1,0 +1,14 @@
+{
+  "pins" : [
+    {
+      "identity" : "asynctesting",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/brennanMKE/AsyncTesting.git",
+      "state" : {
+        "revision" : "4eaaf322742c4bebabe030767c97417cf05672c6",
+        "version" : "0.0.7"
+      }
+    }
+  ],
+  "version" : 2
+}
