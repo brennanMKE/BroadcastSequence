@@ -102,35 +102,46 @@ extension BroadcastConsumer: Hashable {
 public actor BroadcastSource<Element: Sendable> {
     private let source: AsyncStream<Element>
     private var consumers: Set<BroadcastConsumer<Element>> = []
+    private var finished = false
 
     public init(source: AsyncStream<Element>) {
         self.source = source
-        Task {
-            await pipeElements()
-        }
     }
 
-    public func consume(name: String? = nil) -> BroadcastConsumer<Element> {
+    public func consume(name: String? = nil) async -> BroadcastConsumer<Element> {
         let consumer = BroadcastConsumer<Element>(name: name)
         consumers.insert(consumer)
+        if finished {
+            // terminate immediately if already finished
+            Task {
+                await consumer.send(element: nil)
+            }
+        }
         return consumer
     }
 
-    public func discard(consumer: BroadcastConsumer<Element>) {
+    public func discard(consumer: BroadcastConsumer<Element>) async {
         consumers.remove(consumer)
+        Task {
+            await consumer.send(element: nil)
+        }
     }
 
-    private func pipeElements() async {
-        for await element in source {
-            // send element to each consumer
-            for consumer in consumers  {
-                await consumer.send(element: element)
+    public func resume() async {
+        Task {
+            for await element in source {
+                // send element to each consumer
+                for consumer in consumers  {
+                    await consumer.send(element: element)
+                }
             }
-        }
 
-        // terminate each iterator
-        for consumer in consumers  {
-            await consumer.send(element: nil)
+            finished = true
+
+            // terminate each consumer
+            for consumer in consumers  {
+                await consumer.send(element: nil)
+            }
         }
     }
 
